@@ -9,7 +9,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -19,16 +18,45 @@ import java.net.Socket;
 
 public class ServerActivity extends Activity implements View.OnClickListener {
 
-    public static final String TAG = "Server";
-    private String SERVICE_NAME = "Juno Device";
-    private String SERVICE_TYPE = "_http._tcp.";
+    private static final String TAG = "SERVER";
+
+    private static final String SERVICE_NAME = "Juno Device";
+    private static final String SERVICE_TYPE = "_http._tcp.";
     private NsdManager mNsdManager;
 
     Button send;
     EditText message;
-    private ServerSocket socketServer;
-    private DataInputStream dataInputStream;
     private DataOutputStream dataOutputStream;
+
+    NsdManager.RegistrationListener mRegistrationListener = new NsdManager.RegistrationListener() {
+
+        @Override
+        public void onServiceRegistered(NsdServiceInfo nsdServiceInfo) {
+            onConnected();
+        }
+
+        @Override
+        public void onRegistrationFailed(NsdServiceInfo serviceInfo,
+                                         int errorCode) {
+            // Registration failed! Put debugging code here to determine
+            // why.
+        }
+
+        @Override
+        public void onServiceUnregistered(NsdServiceInfo serviceInfo) {
+            // Service has been unregistered. This only happens when you
+            // call
+            // NsdManager.unregisterService() and pass in this listener.
+            Log.d(TAG, "Service Unregistered : " + serviceInfo.getServiceName());
+        }
+
+        @Override
+        public void onUnregistrationFailed(NsdServiceInfo serviceInfo,
+                                           int errorCode) {
+            // Unregistration failed. Put debugging code here to determine
+            // why.
+        }
+    };
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -63,49 +91,12 @@ public class ServerActivity extends Activity implements View.OnClickListener {
                 mRegistrationListener);
     }
 
-    NsdManager.RegistrationListener mRegistrationListener = new NsdManager.RegistrationListener() {
-
-        @Override
-        public void onServiceRegistered(NsdServiceInfo nsdServiceInfo) {
-            String mServiceName = nsdServiceInfo.getServiceName();
-            SERVICE_NAME = mServiceName;
-            Log.d(TAG, "Registered name : " + mServiceName);
-
-
-            onConnected(nsdServiceInfo);
-        }
-
-        @Override
-        public void onRegistrationFailed(NsdServiceInfo serviceInfo,
-                                         int errorCode) {
-            // Registration failed! Put debugging code here to determine
-            // why.
-        }
-
-        @Override
-        public void onServiceUnregistered(NsdServiceInfo serviceInfo) {
-            // Service has been unregistered. This only happens when you
-            // call
-            // NsdManager.unregisterService() and pass in this listener.
-            Log.d(TAG,
-                    "Service Unregistered : " + serviceInfo.getServiceName());
-        }
-
-        @Override
-        public void onUnregistrationFailed(NsdServiceInfo serviceInfo,
-                                           int errorCode) {
-            // Unregistration failed. Put debugging code here to determine
-            // why.
-        }
-    };
-
-    private void onConnected(NsdServiceInfo nsdServiceInfo) {
+    private void onConnected() {
         try {
-            socketServer = new ServerSocket(9000);
+            ServerSocket socketServer = new ServerSocket(9000);
 
             Socket socket = socketServer.accept();
 
-            dataInputStream = new DataInputStream(socket.getInputStream());
             dataOutputStream = new DataOutputStream(socket.getOutputStream());
         } catch (IOException e) {
             e.printStackTrace();
@@ -115,7 +106,6 @@ public class ServerActivity extends Activity implements View.OnClickListener {
 
     @Override
     public void onClick(View v) {
-
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -128,6 +118,5 @@ public class ServerActivity extends Activity implements View.OnClickListener {
                 }
             }
         }).start();
-
     }
 }
